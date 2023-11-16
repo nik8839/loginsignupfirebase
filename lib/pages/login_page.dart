@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -16,50 +17,52 @@ class _Login_PageState extends State<Login_Page> {
   bool isLoading=false;
 
   final _formKey=GlobalKey<FormState>();
+  final FirebaseFirestore _fireStore=FirebaseFirestore.instance;
+  final FirebaseAuth _firebaseAuth=FirebaseAuth.instance;
   final TextEditingController _email=TextEditingController();
   final TextEditingController _password=TextEditingController();
-  signInWithEmailAndPassword()async{
+
+  Future<UserCredential>signInWithEmailAndPassword()async{
     try {
+
       setState(() {
         isLoading=true;});
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      UserCredential userCredential=
+      await _firebaseAuth.signInWithEmailAndPassword(
         email: _email.text,
         password: _password.text,
       );
+      _fireStore.collection('users').doc(userCredential.user!.uid).set({
+        'uid':userCredential.user!.uid,
+        'email':userCredential.user!.email,
+
+      },SetOptions(merge: true));
       setState(() {
 
         isLoading=false;
       });
+
+
+
+      return userCredential;
     }
     on FirebaseAuthException catch (e) {
       setState(() {
         isLoading=false;
       }
+
       );
-     // print(e.code+" hi");
-      // if (e.code== 'user-not-found') {
-      //   //print(e);
-      //   return ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
-      //       content:Text('wrong Email'),
-      //   ),
-      //   );
-      // } else if (e.code == 'wrong-password') {
-      //  // print(e);
-      //  return  ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
-      //       content:Text('password empty'),
-      //   ),
-      //   );
-      // }
-      if(e.code=='INVALID_LOGIN_CREDENTIALS'||e.code=='The email address is badly formatted')
-        {
-          return  ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
-                     content:Text('Wrong Credential'),
-                 ),
-                 );
 
-        }
+      // if(e.code=='INVALID_LOGIN_CREDENTIALS'||e.code=='The email address is badly formatted')
+      //   {
+      //     return  ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
+      //                content:Text('Wrong Credential'),
+      //            ),
+      //            );
+      //
+      //   }
 
-
+      throw Exception(e.code);
       //}
     }
     //dispose();

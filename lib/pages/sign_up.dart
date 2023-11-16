@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -16,41 +17,56 @@ class _SignUpState extends State<SignUp> {
   bool isLoading=false;
 
   final _formKey=GlobalKey<FormState>();
+  final FirebaseFirestore _fireStore=FirebaseFirestore.instance;
+  final FirebaseAuth _firebaseAuth=FirebaseAuth.instance;
   final TextEditingController _email=TextEditingController();
   final TextEditingController _password=TextEditingController();
-  createUserWithEmailAndPassword()async{
+  Future<UserCredential>createUserWithEmailAndPassword()async{
     try {
       setState(() {
         isLoading=true;
       });
-       await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      UserCredential userCredential=
+       await _firebaseAuth.createUserWithEmailAndPassword(
         email: _email.text,
         password: _password.text,
       );
+
+
+
+
       setState(() {
         isLoading=false;
       });
+      _fireStore.collection('users').doc(userCredential.user!.uid).set({
+        'uid':userCredential.user!.uid,
+        'email':_email
+
+      });
+      setState(() {
+        isLoading=false;
+      });
+      return userCredential;
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        isLoading=false;
-      });
-      if (e.code == 'weak-password') {
-        return  ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
-          content:Text('password is weak'),
-        ),
-        );
+
+      throw Exception(e.code);
+      // if (e.code == 'weak-password') {
+      //   return  ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
+      //     content:Text('password is weak'),
+      //   ),
+      //   );
 
        // print('The password provided is too weak.');
-      } else if (e.code == 'email-already-in-use') {
-        return  ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
-          content:Text('Already in use'),
-        ),
-        );
+      // } else if (e.code == 'email-already-in-use') {
+      //   return  ScaffoldMessenger.of(context).showSnackBar( const SnackBar(
+      //     content:Text('Already in use'),
+      //   ),
+      //   );
         //print('The account already exists for that email.');
       }
-    } catch (e) {
-      print(e);
-    }
+    // } catch (e) {
+    //   print(e);
+    // }
   }
   @override
   Widget build(BuildContext context) {
